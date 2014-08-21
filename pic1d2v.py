@@ -18,7 +18,7 @@ def one_d_poisson(n):
     
     return  a
 
-def poisson_solve(b, nx, dx):
+def poisson_solve_fd(b, nx, dx):
     """ Assume V0=0
     """
     A = one_d_poisson(nx-1)
@@ -27,6 +27,25 @@ def poisson_solve(b, nx, dx):
     x[1:] = np.linalg.solve(A, p[1:])
     
     return x
+
+def poisson_solve_fft(rho):
+    nx = len(rho)
+    rhok = np.fft.fft(rho)
+    k = nx*np.fft.fftfreq(nx)
+
+    phik = np.zeros_like(rhok)
+    phik[1:] = rhok[1:]/(k[1:]**2)
+    sol = np.real(np.fft.ifft(phik))
+    
+    return sol
+
+def poisson_solve(b, nx, dx, method="fd"):
+    if method=="fd":
+        return poisson_solve_fd(b, nx, dx)
+    elif method=="fft":
+        return poisson_solve_fft(b)
+    else:
+        return None
 
 def weight(xp, q, nx, L):
     """ Weighting to grid (NGP)
@@ -82,7 +101,7 @@ def move(xp, vx, vy, dt, L):
     xp[xp>=L] = xp[xp>=L] - L
     xp[xp<0]  = xp[xp<0]  + L
 
-def pic(species, nx, dx, nt, dt, L, B0):
+def pic(species, nx, dx, nt, dt, L, B0, method="fd"):
     
     N = 0
     for s in species: N += s.N
@@ -108,7 +127,7 @@ def pic(species, nx, dx, nt, dt, L, B0):
     # Main solution loop
     # Init half step back
     rho = weight(xp, q, nx, L)
-    phi = poisson_solve(rho, nx, dx)
+    phi = poisson_solve(rho, nx, dx, method=method)
     E0  = calc_E(phi, dx)
     E   = interp(rho, E0, xp, nx, L)
     
@@ -129,7 +148,7 @@ def pic(species, nx, dx, nt, dt, L, B0):
         move(xp, vx, vy, dt, L)
 
         rho = weight(xp, q, nx, L)
-        phi = poisson_solve(rho, nx, dx)
+        phi = poisson_solve(rho, nx, dx, method=method)
         E0  = calc_E(phi, dx)
         E   = interp(rho, E0, xp, nx, L)
         
