@@ -18,50 +18,58 @@ def one_d_poisson(n):
     
     return  a
 
-def poisson_solve_fd(b, nx, dx):
+# Dict of solver functions with string keys
+__solver = {}    
+def poisson_solve_fd(b, dx):
     """ Assume V0=0
     """
-    A = one_d_poisson(nx-1)
-    p = -b*(dx**2)
-    x = np.zeros_like(p)
+    nx = len(b)
+    A  = one_d_poisson(nx-1)
+    p  = -b*(dx**2)
+    x  = np.zeros_like(p)
     x[1:] = np.linalg.solve(A, p[1:])
     
     return x
+__solver["FD"] = poisson_solve_fd
 
 def poisson_solve_fft(rho):
-    nx = len(rho)
+    nx   = len(rho)
     rhok = np.fft.fft(rho)
-    k = nx*np.fft.fftfreq(nx)
+    k    = nx*np.fft.fftfreq(nx)
 
-    phik = np.zeros_like(rhok)
+    phik     = np.zeros_like(rhok)
     phik[1:] = rhok[1:]/(k[1:]**2)
-    sol = np.real(np.fft.ifft(phik))
+    sol      = np.real(np.fft.ifft(phik))
     
     return sol
+__solver["FFT"] = lambda b, dx : poisson_solve_fft(b)
 
-def poisson_solve(b, nx, dx, method="fd"):
-    if method=="fd":
-        return poisson_solve_fd(b, nx, dx)
-    elif method=="fft":
-        return poisson_solve_fft(b)
+def poisson_solve(b, dx, method="FD"):
+    if method in __solver:
+        return __solver[method](b, dx)
     else:
-        return None
+        return method(b, dx)
+
+# Dicts of weight/interp functions with string keys
+__weight = {}
+__interp = {}
 
 def weight_cic(xp, q, nx, L):
     """ Weighting to grid (CIC)
     """
     rho = np.zeros(nx)
     # Scale from [0,L] to [0,nx]
-    xps = xp*nx/L
+    xps   = xp*nx/L
     left  = np.floor(xps).astype(np.int)
     right = np.mod(np.ceil(xps), nx).astype(np.int)
     for i in xrange(len(xps)):
-        rho[left[i]]  += (q[i]/epi0)*(left[i]+1-xps[i])
-        rho[right[i]] += (q[i]/epi0)*(xps[i]-left[i])
+        rho[left[i]]  += q[i]*(left[i]+1-xps[i])
+        rho[right[i]] += q[i]*(xps[i]-left[i])
         
     return rho
-
-def interp_cic(rho, E, xp, nx, L):
+__weight["CIC"] = weight_cic
+    
+def interp_cic(E, xp, nx, L):
     """ Interpolate E to particle positions (CIC)
     """
     xps = xp*nx/L
@@ -70,6 +78,7 @@ def interp_cic(rho, E, xp, nx, L):
     E_interp = E[left]*(left+1-xps) + E[right]*(xps-left)
     
     return E_interp
+__interp["CIC"] = interp_cic
     
 def weight_ngp(xp, q, nx, L):
     """ Weighting to grid (NGP)
@@ -78,37 +87,39 @@ def weight_ngp(xp, q, nx, L):
     xps = np.round(xp*nx/L).astype(np.int)
     xps[xps==nx] = 0
     for i in xrange(len(xps)):
-        rho[xps[i]] += q[i]/epi0
+        rho[xps[i]] += q[i]
         
     return rho
+__weight["NGP"] = weight_ngp
 
-def interp_ngp(rho, E, xp, nx, L):
+def interp_ngp(E, xp, nx, L):
     """ Interpolate E to particle positions (NGP)
     """
     xps = np.round(xp*nx/L).astype(np.int)
     xps[xps==nx] = 0
     return E[xps]
+__interp["NGP"] = interp_ngp
 
 def weight(xp, q, nx, L, method="NGP"):
-    if method=="NGP":
-        return weight_ngp(xp, q, nx, L)
-    elif method=="CIC":
-        return weight_cic(xp, q, nx, L)
+    if method in __weight:
+        return __weight[method](xp, q, nx, L)
+    else:
+        return method(xp, q, nx, L)
 
-def interp(rho, E, xp, nx, L, method="NGP"):
-    if method=="NGP":
-        return interp_ngp(rho, E, xp, nx, L)
-    elif method=="CIC":
-        return interp_cic(rho, E, xp, nx, L)
+def interp(E, xp, nx, L, method="NGP"):
+    if method in __interp:
+        return __interp[method](E, xp, nx, L)
+    else:
+        return method(E, xp, nx, L)
 
 def calc_E(phi, dx):
     """ Calc E at the particle positions
     The three 'bottom' steps on page 11
     """
-    E   = np.zeros_like(phi)
+    E       = np.zeros_like(phi)
     E[1:-1] = -(phi[2:]-phi[:-2])/(2*dx)
-    E[0] = -(phi[1]-phi[-1])/(2*dx)
-    E[-1] = -(phi[0]-phi[-1])/(2*dx)
+    E[0]    = -(phi[1]-phi[-1])/(2*dx)
+    E[-1]   = -(phi[0]-phi[-1])/(2*dx)
     
     return E
 
@@ -137,7 +148,7 @@ def move(xp, vx, vy, dt, L):
     xp[xp<0]  = xp[xp<0]  + L
     xp[xp>=L] = xp[xp>=L] - L
 
-def pic(species, nx, dx, nt, dt, L, B0, method="fd", 
+def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD", 
                                         weight_method="NGP",
                                         interp_method="NGP"):
     
@@ -165,9 +176,9 @@ def pic(species, nx, dx, nt, dt, L, B0, method="fd",
     # Main solution loop
     # Init half step back
     rho = weight(xp, q, nx, L, method=weight_method)
-    phi = poisson_solve(rho, nx, dx, method=method)
+    phi = poisson_solve(rho/epi0, dx, method=solver_method)
     E0  = calc_E(phi, dx)
-    E   = interp(rho, E0, xp, nx, L, method=interp_method)
+    E   = interp(E0, xp, nx, L, method=interp_method)
     
     rotate(vx, vy, -wc, dt)
     accel(vx, vy, E, -qm, dt)
@@ -186,9 +197,9 @@ def pic(species, nx, dx, nt, dt, L, B0, method="fd",
         move(xp, vx, vy, dt, L)
       
         rho = weight(xp, q, nx, L, method=weight_method)
-        phi = poisson_solve(rho, nx, dx, method=method)
+        phi = poisson_solve(rho/epi0, dx, method=solver_method)
         E0  = calc_E(phi, dx)
-        E   = interp(rho, E0, xp, nx, L, method=interp_method)
+        E   = interp(E0, xp, nx, L, method=interp_method)
         
         xpa[i], vxa[i], vya[i] = xp, vx, vy
         Ea[i], phia[i] = E0, phi
