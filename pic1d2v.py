@@ -47,7 +47,31 @@ def poisson_solve(b, nx, dx, method="fd"):
     else:
         return None
 
-def weight(xp, q, nx, L):
+def weight_cic(xp, q, nx, L):
+    """ Weighting to grid (CIC)
+    """
+    rho = np.zeros(nx)
+    # Scale from [0,L] to [0,nx]
+    xps = xp*nx/L
+    left  = np.floor(xps).astype(np.int)
+    right = np.mod(np.ceil(xps), nx).astype(np.int)
+    for i in xrange(len(xps)):
+        rho[left[i]]  += (q[i]/epi0)*(left[i]+1-xps[i])
+        rho[right[i]] += (q[i]/epi0)*(xps[i]-left[i])
+        
+    return rho
+
+def interp_cic(rho, E, xp, nx, L):
+    """ Interpolate E to particle positions (CIC)
+    """
+    xps = xp*nx/L
+    left  = np.floor(xps).astype(np.int)
+    right = np.mod(np.ceil(xps), nx).astype(np.int)
+    E_interp = E[left]*(left+1-xps) + E[right]*(xps-left)
+    
+    return E_interp
+    
+def weight_ngp(xp, q, nx, L):
     """ Weighting to grid (NGP)
     """
     rho = np.zeros(nx)
@@ -58,12 +82,24 @@ def weight(xp, q, nx, L):
         
     return rho
 
-def interp(rho, E, xp, nx, L):
+def interp_ngp(rho, E, xp, nx, L):
     """ Interpolate E to particle positions (NGP)
     """
     xps = np.round(xp*nx/L).astype(np.int)
     xps[xps==nx] = 0
     return E[xps]
+
+def weight(xp, q, nx, L, method="NGP"):
+    if method=="NGP":
+        return weight_ngp(xp, q, nx, L)
+    elif method=="CIC":
+        return weight_cic(xp, q, nx, L)
+
+def interp(rho, E, xp, nx, L, method="NGP"):
+    if method=="NGP":
+        return interp_ngp(rho, E, xp, nx, L)
+    elif method=="CIC":
+        return interp_cic(rho, E, xp, nx, L)
 
 def calc_E(phi, dx):
     """ Calc E at the particle positions
@@ -98,10 +134,12 @@ def move(xp, vx, vy, dt, L):
     """
     xp[:] = xp + dt*vx
     
-    xp[xp>=L] = xp[xp>=L] - L
     xp[xp<0]  = xp[xp<0]  + L
+    xp[xp>=L] = xp[xp>=L] - L
 
-def pic(species, nx, dx, nt, dt, L, B0, method="fd"):
+def pic(species, nx, dx, nt, dt, L, B0, method="fd", 
+                                        weight_method="NGP",
+                                        interp_method="NGP"):
     
     N = 0
     for s in species: N += s.N
@@ -126,10 +164,10 @@ def pic(species, nx, dx, nt, dt, L, B0, method="fd"):
 
     # Main solution loop
     # Init half step back
-    rho = weight(xp, q, nx, L)
+    rho = weight(xp, q, nx, L, method=weight_method)
     phi = poisson_solve(rho, nx, dx, method=method)
     E0  = calc_E(phi, dx)
-    E   = interp(rho, E0, xp, nx, L)
+    E   = interp(rho, E0, xp, nx, L, method=interp_method)
     
     rotate(vx, vy, -wc, dt)
     accel(vx, vy, E, -qm, dt)
@@ -138,7 +176,7 @@ def pic(species, nx, dx, nt, dt, L, B0, method="fd"):
     Ea[0], phia[0] = E0, phi
     
     for i in range(1, nt+1):
- 
+        
         # Update velocity
         accel(vx, vy, E, qm, dt)
         rotate(vx, vy, wc, dt)
@@ -146,11 +184,11 @@ def pic(species, nx, dx, nt, dt, L, B0, method="fd"):
 
         # Update position
         move(xp, vx, vy, dt, L)
-
-        rho = weight(xp, q, nx, L)
+      
+        rho = weight(xp, q, nx, L, method=weight_method)
         phi = poisson_solve(rho, nx, dx, method=method)
         E0  = calc_E(phi, dx)
-        E   = interp(rho, E0, xp, nx, L)
+        E   = interp(rho, E0, xp, nx, L, method=interp_method)
         
         xpa[i], vxa[i], vya[i] = xp, vx, vy
         Ea[i], phia[i] = E0, phi
