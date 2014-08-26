@@ -140,13 +140,23 @@ def rotate(vx, vy, wc, dt):
     vx[:] = vx_new
     vy[:] = vy_new
 
+def normalize(x, L):
+    """ Keep x in [0,L), assuming a periodic domain
+    """
+    # The order here is significant because of rounding
+    # If x<0 is very close to 0, then float(x+L)=L
+    x[x<0]  = x[x<0]  + L
+    x[x>=L] = x[x>=L] - L
+    
+
 def move(xp, vx, vy, dt, L):
     """ Move in place
     """
     xp[:] = xp + dt*vx
-    
-    xp[xp<0]  = xp[xp<0]  + L
-    xp[xp>=L] = xp[xp>=L] - L
+
+    normalize(xp, L)
+    # xp[xp<0]  = xp[xp<0]  + L
+    # xp[xp>=L] = xp[xp>=L] - L
 
 def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD", 
                                         weight_method="NGP",
