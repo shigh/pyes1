@@ -148,15 +148,15 @@ def normalize(x, L):
     x[x<0]  = x[x<0]  + L
     x[x>=L] = x[x>=L] - L
     
-
-def move(xp, vx, vy, dt, L):
+def move(xp, vx, vy, dt, L, do_move=None):
     """ Move in place
     """
-    xp[:] = xp + dt*vx
+    if do_move==None:
+        xp[:] = xp + dt*vx
+    else:
+        xp[do_move] = xp[do_move] + dt*vx[do_move]
 
     normalize(xp, L)
-    # xp[xp<0]  = xp[xp<0]  + L
-    # xp[xp>=L] = xp[xp>=L] - L
 
 def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD", 
                                         weight_method="NGP",
@@ -166,6 +166,8 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
     for s in species: N += s.N
 
     q, qm, wc, xp, vx, vy = [np.zeros(N) for _ in range(6)]
+    do_move = np.ndarray((N,), dtype=np.bool)
+    do_move[:] = False
     count = 0 # Trailing count
     for s in species:
         q[count:count+s.N]  = s.q
@@ -174,6 +176,7 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
         xp[count:count+s.N] = s.x0
         vx[count:count+s.N] = s.vx0
         vy[count:count+s.N] = s.vy0
+        do_move[count:count+s.N] = s.m>0
         count += s.N
 
     # store the results at each time step
@@ -204,7 +207,7 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
         accel(vx, vy, E, qm, dt)
 
         # Update position
-        move(xp, vx, vy, dt, L)
+        move(xp, vx, vy, dt, L, do_move=do_move)
       
         rho = weight(xp, q, nx, L, method=weight_method)
         phi = poisson_solve(rho/epi0, dx, method=solver_method)
