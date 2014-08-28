@@ -32,17 +32,17 @@ def poisson_solve_fd(b, dx):
     return x
 __solver["FD"] = poisson_solve_fd
 
-def poisson_solve_fft(rho):
+def poisson_solve_fft(rho, dx):
     nx   = len(rho)
     rhok = np.fft.fft(rho)
-    k    = nx*np.fft.fftfreq(nx)
+    k    = np.fft.fftfreq(nx)*2*np.pi/dx
 
     phik     = np.zeros_like(rhok)
     phik[1:] = rhok[1:]/(k[1:]**2)
     sol      = np.real(np.fft.ifft(phik))
     
     return sol
-__solver["FFT"] = lambda b, dx : poisson_solve_fft(b)
+__solver["FFT"] = poisson_solve_fft
 
 def poisson_solve(b, dx, method="FD"):
     if method in __solver:
