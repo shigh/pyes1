@@ -185,3 +185,106 @@ class TestLeapFrog(unittest.TestCase):
         order = e2[:-1]-e2[1:]
         self.assertTrue((np.abs(order-2)<tol).all())
 
+
+class TestWeightInterpCIC(unittest.TestCase):
+
+    tol = 10e-10
+    
+    def test_weight_on_grid_points(self):
+        L = 1.
+        nx = 10
+        expected = np.ones(nx)
+        x_vals   = np.linspace(0, L, nx+1)[:-1]
+        q_locs   = x_vals.copy()
+        q_vals   = np.ones_like(q_locs)
+
+        qw = weight(q_locs, q_vals, nx, L, method='CIC')
+        
+        self.assertTrue((np.abs(qw - expected)<self.tol).all())
+        
+    def test_weight_sing_part_locs(self):
+        L = 1.
+        nx = 6
+        x_vals = np.linspace(0, L, nx+1)[:-1]
+        dx = x_vals[1] - x_vals[0]
+        q_locs = np.zeros(3)
+        q_vals = np.ones_like(q_locs)
+
+        q_locs[0] = x_vals[0] + .25*dx
+        q_locs[1] = x_vals[2] +  .5*dx
+        q_locs[2] = x_vals[4] + .75*dx
+
+        qw = weight(q_locs, q_vals, nx, L, method='CIC')
+
+        expected = np.array([.75, .25, .5, .5, .25, .75])
+        self.assertTrue((np.abs(qw-expected)<self.tol).all())
+    
+    def test_weight_many_part_locs(self):
+        L = 1.
+        nx = 6
+        x_vals = np.linspace(0, L, nx+1)[:-1]
+        dx = x_vals[1] - x_vals[0]
+        q_locs = np.zeros(6)
+        q_vals = np.ones_like(q_locs)
+
+        q_locs[0] = x_vals[0] + .25*dx
+        q_locs[1] = x_vals[0] + .75*dx
+        q_locs[2] = x_vals[2] +  .5*dx
+        q_locs[3] = x_vals[2] +  .5*dx
+        q_locs[4] = x_vals[4] + .75*dx
+        q_locs[5] = x_vals[4] + .25*dx
+
+        qw = weight(q_locs, q_vals, nx, L, method='CIC')
+
+        expected = np.ones_like(q_locs)
+        (np.abs(qw - expected)<self.tol).all()
+
+    def test_interp_on_grid_points(self):
+        L = 1.
+        nx = 6
+        x_vals = np.linspace(0, L, nx+1)[:-1]
+        q_locs = x_vals.copy()
+        E = np.ones(nx)
+        q_vals = interp(E, q_locs, nx, L, method='CIC')
+
+        expected = np.ones_like(q_locs)
+        self.assertTrue((np.abs(q_vals - expected)<self.tol).all())
+        
+    def test_interp_sing_part_locs(self):
+        L = 1.
+        nx = 6
+        x_vals = np.linspace(0, L, nx+1)[:-1]
+        dx = x_vals[1] - x_vals[0]
+        q_locs = np.zeros(3)
+        E = np.ones_like(x_vals)
+
+        q_locs[0] = x_vals[0] + .25*dx
+        q_locs[1] = x_vals[2] +  .5*dx
+        q_locs[2] = x_vals[4] + .75*dx
+
+        q_vals = interp(E, q_locs, nx, L, method='CIC')
+
+        expected = np.ones_like(q_vals)
+        self.assertTrue((np.abs(q_vals-expected)<self.tol).all())
+
+    def test_interp_many_part_locs(self):
+        L = 1.
+        nx = 6
+        x_vals = np.linspace(0, L, nx+1)[:-1]
+        dx = x_vals[1] - x_vals[0]
+        q_locs = np.zeros(6)
+        E = np.ones_like(x_vals)
+
+        q_locs[0] = x_vals[0] + .25*dx
+        q_locs[1] = x_vals[0] + .75*dx
+        q_locs[2] = x_vals[2] +  .5*dx
+        q_locs[3] = x_vals[2] +  .5*dx
+        q_locs[4] = x_vals[4] + .75*dx
+        q_locs[5] = x_vals[4] + .25*dx
+
+        q_vals = interp(E, q_locs, nx, L, method='CIC')
+
+        expected = np.ones_like(q_locs)
+        self.assertTrue((np.abs(q_vals-expected)<self.tol).all())
+
+           
