@@ -114,14 +114,14 @@ def interp(E, xp, nx, L, method="NGP"):
 
 def calc_E(phi, dx):
     """ Calc E at the particle positions
-    The three 'bottom' steps on page 11
+    Centered difference (second order)
     """
     E       = np.zeros_like(phi)
-    E[1:-1] = -(phi[2:]-phi[:-2])/(2*dx)
-    E[0]    = -(phi[1]-phi[-1])/(2*dx)
-    E[-1]   = -(phi[0]-phi[-1])/(2*dx)
+    E[1:-1] = -(phi[2:]-phi[:-2])
+    E[0]    = -(phi[1]-phi[-1])
+    E[-1]   = -(phi[0]-phi[-2])
     
-    return E
+    return E/(2*dx)
 
 def accel(vx, vy, E, alpha, dt):
     """ Accel in place
