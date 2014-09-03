@@ -2,37 +2,37 @@ import numpy as np
 import unittest
 from pic1d2v import *
 
+# Use the max norm
+norm = lambda x: np.max(np.abs(x))
+
 class TestCalcE(unittest.TestCase):
     k1 = 2*np.pi
     
     def get_x(self, N):
         return np.linspace(0, 1, N+1)[:-1]
-    
+        
     def get_u(self, x_vals):
         return np.sin(self.k1*x_vals)
-    
+        
     def get_exact(self, x_vals):
         return -self.k1*np.cos(self.k1*x_vals)
-    
+        
     def get_error(self, N):
         x_vals = self.get_x(N)
         dx     = x_vals[1] - x_vals[0]
         u      = self.get_u(x_vals)
         exact  = self.get_exact(x_vals)
         E      = calc_E(u, dx)
-        return np.linalg.norm(E - exact)
-    
+        return norm(E - exact)
+        
     def test_converges(self):
         N = 10000
         tol = 10e-5
         error = self.get_error(N)
         self.assertLess(error, tol)
 
-    # I am not getting the expected order
-    # Getting about 1.5 instead of 2
-    @unittest.expectedFailure
     def test_order(self):
-        tol = .2
+        tol = .001
         k_vals = [10, 11]
         errors = [self.get_error(2**k) for k in k_vals]
         order = np.log2(errors[0]) - np.log2(errors[1])
@@ -40,7 +40,32 @@ class TestCalcE(unittest.TestCase):
 
         
 class TestLeapFrog(unittest.TestCase):
-    
+
+    def leap_frog(self, xp0, x0, w0, nt, dt, L, wc):
+        
+        nx = len(xp0)
+        w02 = w0**2
+        a   = -w02*np.ones(nx)
+        xpa = np.zeros((nt+1, nx))
+        xp  = xp0.copy()
+        vx  = np.zeros_like(xp)
+        vy  = np.zeros_like(xp)
+
+        xpa[0] = xp0
+        rotate(vx, vy, -wc, dt)
+        accel(vx, vy, xp-x0, -a, dt)
+
+        for i in range(1, nt+1):
+            # Update velocity
+            accel(vx, vy, xp-x0, a, dt)
+            rotate(vx, vy, wc, dt)
+            accel(vx, vy, xp-x0, a, dt)
+            # Update position
+            move(xp, vx, vy, dt, L)
+            xpa[i] = xp
+
+        return xpa
+
     def test_two_steps(self):
         """Two accel calls should give us one full time step
         Using B=0
@@ -85,7 +110,7 @@ class TestLeapFrog(unittest.TestCase):
         
         self.assertAlmostEqual(np.linalg.norm(vx-vx0), 0.)
         self.assertAlmostEqual(np.linalg.norm(vy-vy0), 0.)
-    
+        
     def test_normalize(self):
         """Move particles out of [0, L) back into [0, L)
         """
@@ -99,7 +124,7 @@ class TestLeapFrog(unittest.TestCase):
         self.assertTrue((x==y).all())
         self.assertTrue((x>=0).all())
         self.assertTrue((x<L).all())
-    
+        
     def test_move(self):
         """Everything gets pushed when do_move=None
         """
@@ -132,4 +157,31 @@ class TestLeapFrog(unittest.TestCase):
 
         self.assertTrue((xp==xpe).all())
 
-        
+    def test_leap_frog_order(self):
+        nx  = 10
+        L   = 1.
+        x0 = L/2.
+        xp0 = np.linspace(0, L/4., nx+1)[1:]+x0
+        w0  = 1.
+        wc  = 0
+        T   = 10.
+        tol = 0.001
+        k_vals = range(9, 11)
+        errors = []
+        for k in k_vals:
+            nt = 2**k
+            dt = T/nt
+            t_vals = np.linspace(0, T, nt+1)
+            expected = np.zeros((nt+1, nx))
+            for j in range(nx):
+                expected[:, j] = (xp0-x0)[j]*np.cos(w0*t_vals)+x0
+
+            xpa = self.leap_frog(xp0, x0, w0, nt, dt, L, wc)
+
+            errors.append([norm(expected[:,j]-xpa[:,j])
+                           for j in range(nx)])
+
+        e2 = np.log2(np.array(errors))
+        order = e2[:-1]-e2[1:]
+        self.assertTrue((np.abs(order-2)<tol).all())
+
