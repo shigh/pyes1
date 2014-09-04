@@ -201,7 +201,22 @@ class TestWeightInterpCIC(unittest.TestCase):
         qw = weight(q_locs, q_vals, nx, L, method='CIC')
         
         self.assertTrue((np.abs(qw - expected)<self.tol).all())
-        
+
+    def test_weight_on_end(self):
+        L = 1.
+        nx = 2
+        x_vals = np.linspace(0, L, nx+1)[:-1]
+        dx = x_vals[1] - x_vals[0]
+        q_locs = np.zeros(1)
+        q_vals = np.ones_like(q_locs)
+
+        q_locs[0] = x_vals[1] + .25*dx
+
+        qw = weight(q_locs, q_vals, nx, L, method='CIC')
+
+        expected = np.array([.25, .75])
+        self.assertTrue((np.abs(qw-expected)<self.tol).all())
+
     def test_weight_sing_part_locs(self):
         L = 1.
         nx = 6
@@ -249,7 +264,22 @@ class TestWeightInterpCIC(unittest.TestCase):
 
         expected = np.ones_like(q_locs)
         self.assertTrue((np.abs(q_vals - expected)<self.tol).all())
-        
+
+    def test_interp_on_end(self):
+        L = 1.
+        nx = 2
+        x_vals = np.linspace(0, L, nx+1)[:-1]
+        dx = x_vals[1] - x_vals[0]
+        q_locs = np.zeros(1)
+        E = np.ones_like(x_vals)
+        E[0] = 0
+
+        q_locs[0] = x_vals[1] + .25*dx
+        q_vals = interp(E, q_locs, nx, L, method='CIC')
+
+        expected = np.array([.75])
+        self.assertTrue((np.abs(q_vals-expected)<self.tol).all())
+
     def test_interp_sing_part_locs(self):
         L = 1.
         nx = 6
