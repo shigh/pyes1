@@ -32,16 +32,27 @@ def poisson_solve_fd(b, dx):
     return x
 __solver["FD"] = poisson_solve_fd
 
+# def poisson_solve_fft(rho, dx):
+#     nx   = len(rho)
+#     rhok = np.fft.fft(rho)
+#     k    = np.fft.fftfreq(nx)*2*np.pi/dx
+
+#     phik     = np.zeros_like(rhok)
+#     phik[1:] = rhok[1:]/(k[1:]**2)
+#     sol      = np.real(np.fft.ifft(phik))
+    
+#     return sol
+
 def poisson_solve_fft(rho, dx):
     nx   = len(rho)
     rhok = np.fft.fft(rho)
-    k    = np.fft.fftfreq(nx)*2*np.pi/dx
-
+    k    = np.arange(nx)
+    ck   = 2*(np.cos(2*np.pi*k/nx)-1.)/dx**2
     phik     = np.zeros_like(rhok)
-    phik[1:] = rhok[1:]/(k[1:]**2)
+    phik[1:] = -rhok[1:]/ck[1:]
     sol      = np.real(np.fft.ifft(phik))
     
-    return sol
+    return sol    
 __solver["FFT"] = poisson_solve_fft
 
 def poisson_solve(b, dx, method="FD"):
@@ -188,7 +199,7 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
 
     # Main solution loop
     # Init half step back
-    rho = weight(xp, q, nx, L, method=weight_method)
+    rho = weight(xp, q, nx, L, method=weight_method)/dx
     phi = poisson_solve(rho/epi0, dx, method=solver_method)
     E0  = calc_E(phi, dx)
     E   = interp(E0, xp, nx, L, method=interp_method)
@@ -209,7 +220,7 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
         # Update position
         move(xp, vx, vy, dt, L, do_move=do_move)
       
-        rho = weight(xp, q, nx, L, method=weight_method)
+        rho = weight(xp, q, nx, L, method=weight_method)/dx
         phi = poisson_solve(rho/epi0, dx, method=solver_method)
         E0  = calc_E(phi, dx)
         E   = interp(E0, xp, nx, L, method=interp_method)
