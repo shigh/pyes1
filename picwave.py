@@ -63,4 +63,7 @@ class PicWave(object):
 
         return delta_x
 
+    def omega(self):
+        pass
+
         
