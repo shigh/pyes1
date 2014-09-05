@@ -52,3 +52,15 @@ class PicWave(object):
                 solver_method="FFT",
                 weight_method="CIC",
                 interp_method="CIC")
+
+    def delta_x(self):
+        """Handle wrap around logic for delta x
+        """
+        L = self.L
+        delta_x = self.xp[:,:self.N_e]-self.x0
+        delta_x[delta_x>L/2.]  = delta_x[delta_x>L/2.]  - L
+        delta_x[delta_x<-L/2.] = delta_x[delta_x<-L/2.] + L
+
+        return delta_x
+
+        
