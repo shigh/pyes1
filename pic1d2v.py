@@ -55,7 +55,7 @@ def poisson_solve_fft(rho, dx):
     return sol    
 __solver["FFT"] = poisson_solve_fft
 
-def poisson_solve(b, dx, method="FD"):
+def poisson_solve(b, dx, method="FFT"):
     if method in __solver:
         return __solver[method](b, dx)
     else:
@@ -111,13 +111,13 @@ def interp_ngp(E, xp, nx, L):
     return E[xps]
 __interp["NGP"] = interp_ngp
 
-def weight(xp, q, nx, L, method="NGP"):
+def weight(xp, q, nx, L, method="CIC"):
     if method in __weight:
         return __weight[method](xp, q, nx, L)
     else:
         return method(xp, q, nx, L)
 
-def interp(E, xp, nx, L, method="NGP"):
+def interp(E, xp, nx, L, method="CIC"):
     if method in __interp:
         return __interp[method](E, xp, nx, L)
     else:
@@ -170,9 +170,9 @@ def move(xp, vx, vy, dt, L, do_move=None):
 
     normalize(xp, L)
 
-def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD", 
-                                        weight_method="NGP",
-                                        interp_method="NGP"):
+def pic(species, nx, dx, nt, dt, L, B0, solver_method="FFT", 
+                                        weight_method="CIC",
+                                        interp_method="CIC"):
     
     N = 0
     for s in species: N += s.N
