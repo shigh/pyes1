@@ -124,7 +124,24 @@ class TestLeapFrog(unittest.TestCase):
         self.assertTrue((x==y).all())
         self.assertTrue((x>=0).all())
         self.assertTrue((x<L).all())
+
+    def test_normalize_big_nums(self):
+        """Move particles out of [0, L) back into [0, L)
+
+        Regression: Particles that had not been moved into the domain
+        after adding or subtracting L were left outside of the
+        range. This led to errors in the code the follows move
+        """
+        L = 1.
+        tol = 10e-12
+        x  = np.array([L/3.-10*L, L/2.+10*L])
+        y  = np.array([L/3., L/2.])
+        normalize(x, L)
         
+        self.assertTrue(norm(x-y)<tol)
+        self.assertTrue((x>=0).all())
+        self.assertTrue((x<L).all())
+
     def test_move(self):
         """Everything gets pushed when do_move=None
         """

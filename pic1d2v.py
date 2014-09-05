@@ -156,9 +156,10 @@ def normalize(x, L):
     """
     # The order here is significant because of rounding
     # If x<0 is very close to 0, then float(x+L)=L
-    x[x<0]  = x[x<0]  + L
-    x[x>=L] = x[x>=L] - L
-    
+    while len(x[x<0])>0 or len(x[x>=L])>0:
+        x[x<0]  = x[x<0]  + L
+        x[x>=L] = x[x>=L] - L
+
 def move(xp, vx, vy, dt, L, do_move=None):
     """ Move in place
     """
@@ -196,6 +197,7 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
     vya  = np.zeros((nt+1, N))
     Ea   = np.zeros((nt+1, nx))
     phia = np.zeros((nt+1, nx))
+    rhoa = np.zeros((nt+1, nx))
 
     # Main solution loop
     # Init half step back
@@ -207,8 +209,8 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
     rotate(vx, vy, -wc, dt)
     accel(vx, vy, E, -qm, dt)
 
-    xpa[0], vxa[0], vya[0] = xp, vx, vy
-    Ea[0], phia[0] = E0, phi
+    xpa[0], vxa[0], vya[0]  = xp, vx, vy
+    Ea[0], phia[0], rhoa[0] = E0, phi, rho
     
     for i in range(1, nt+1):
         
@@ -225,9 +227,9 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
         E0  = calc_E(phi, dx)
         E   = interp(E0, xp, nx, L, method=interp_method)
         
-        xpa[i], vxa[i], vya[i] = xp, vx, vy
-        Ea[i], phia[i] = E0, phi
+        xpa[i], vxa[i], vya[i]  = xp, vx, vy
+        Ea[i], phia[i], rhoa[i] = E0, phi, rho
     
-    return (xpa, vxa, vya, Ea, phia)
+    return (xpa, vxa, vya, Ea, phia, rhoa)
 
     
