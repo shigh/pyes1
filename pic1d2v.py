@@ -1,6 +1,7 @@
 
 import numpy as np
 from collections import namedtuple
+from numba import jit
 
 epi0 = 1. # Epsilon0
 Species = namedtuple("Species", ["q", "m", "N", "x0", "vx0", "vy0"])
@@ -64,7 +65,7 @@ def poisson_solve(b, dx, method="FFT"):
 # Dicts of weight/interp functions with string keys
 __weight = {}
 __interp = {}
-
+@jit
 def weight_cic(xp, q, nx, L):
     """ Weighting to grid (CIC)
     """
@@ -79,7 +80,8 @@ def weight_cic(xp, q, nx, L):
         
     return rho
 __weight["CIC"] = weight_cic
-    
+
+@jit
 def interp_cic(E, xp, nx, L):
     """ Interpolate E to particle positions (CIC)
     """
@@ -90,7 +92,8 @@ def interp_cic(E, xp, nx, L):
     
     return E_interp
 __interp["CIC"] = interp_cic
-    
+
+@jit
 def weight_ngp(xp, q, nx, L):
     """ Weighting to grid (NGP)
     """
@@ -103,6 +106,7 @@ def weight_ngp(xp, q, nx, L):
     return rho
 __weight["NGP"] = weight_ngp
 
+@jit
 def interp_ngp(E, xp, nx, L):
     """ Interpolate E to particle positions (NGP)
     """
