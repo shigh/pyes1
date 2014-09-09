@@ -4,12 +4,14 @@
 * Model Definition
 
 ** General description
-- Solving for
+- Approximating a 1 dimensional plasma using a finite number of
+  negatively charged electrons and positively charge ions
+- Particle dynamics are simulated by solving
   \[ F = q(E+v \times B) \]
-  using
-  \[ \nabla^2 \phi = -\frac{\rho}{\epsilon_0} \]
-  and
+  where
   \[ E = -\nabla \phi \]
+  and
+  \[ \nabla^2 \phi = -\frac{\rho}{\epsilon_0} \]
   - $\phi$ is approximated from the mesh charge density using second order
     centered finite differences
   - $E$ is approximated from $\phi$ using second order centered finite
@@ -53,22 +55,40 @@ v_{t+\Delta t/2} = v^+ + \frac{qE}{m}\frac{\Delta t}{2}
 
 ** Landau Oscillations
 Landau oscillations are simple harmoic waves that form in cold plasmas
-in reposnse to small pertubations in the initial charge density.
+in response to small pertubations in the initial charge density (with
+$B_0=0$).
 
-The particle displacements are expected to be simple harmoic with
-period $\omega_p=(\frac{n q^2}{m \epsilon_0})^{1/2}$ ($\ddot{\delta x}
-= - \omega_p \delta x$). 
+The particle displacements are expected to follow
+\[ \ddot{\delta x} = - \omega_p^2 \delta x \]
+which is SHM with period
+$\omega_p=(\frac{nq^2}{m \epsilon_0})^{1/2}$.
 
 
 *** Details
 - Position pertubation: $x = x_0 + A \cos(k x_0)$
-  - Should yield SHM in $\delta x$ with angular freq $\omega_p$
   - Corresponds to a $\sin$ pertubation in the initial density at the
     same mode
-  - Dispersion relation: $\omega(k) = \omega_p \cos(\frac{k \Delta x}{2})$
-- Measuring:
-  - Magnitude of k for a given mode as a function of time
 
-*** Dispersion relations
+*** Dispersion relations for cold plasmas
+- Exact dispersion relation from the fluid equations
+  \[ \omega(\bold{k}) = \bold{k} \cdot \bold{v}_0 \pm \omega_p \]
+- When $\bold{v}_0 = 0$ the numerical dispersion is
+  \[ \omega(k) = \omega_p \cos\left(\frac{k \Delta x}{2}\right) \]
 
 * Model Validation
+
+** Landau Oscillations
+- Compared oscillations produced by the model with expected
+  theoretical results
+- Validated dispersion relations
+- See [[file:1d2v-wave.ipynb][1d2v-wave IPython notebook]]
+
+** Single particle motion
+- Set $B_0>0$ with a single electron and uniformly distributed ions
+- Compared resulting motion with expectations
+- See [[file:1d2v-sing.ipynb][1d2v-sing IPython notebook]]
+
+** Uniform distribution of particles
+- When electrons and ions are distributed uniformly in the domain with
+  no initial velocity, you expect no motion or acceleration
+- See ---Need to make this notebook---
