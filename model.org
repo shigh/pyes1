@@ -1,0 +1,74 @@
+#+TITLE:  1d2v Electrostatic PIC Code
+#+AUTHOR: Scott High
+
+* Model Definition
+
+** General description
+- Solving for
+  \[ F = q(E+v \times B) \]
+  using
+  \[ \nabla^2 \phi = -\frac{\rho}{\epsilon_0} \]
+  and
+  \[ E = -\nabla \phi \]
+  - $\phi$ is approximated from the mesh charge density using second order
+    centered finite differences
+  - $E$ is approximated from $\phi$ using second order centered finite
+    differences
+- The time integrator is Leap-Frog
+  - $v$ is advanced using the Boris Method
+  - $x$ is advanced in the obvious way using $v$
+  - See below for details
+- Partical charges are interpolated to a uniform mesh to approximate
+  $\rho$ using the cloud in cell (CIC) or nearest grid point (NGP) methods
+- The magnetic field is uniform in the $z$ direction, and is held
+  constant at $B_0$.
+- Particles are allowed to move in the $x$-direction only, and are
+  approximated as infinite sheets with total charge $q$.
+- Particles have $x$ and $y$ velocity components $v_x$ and $v_y$
+
+** Algorithm
+
+1) Weight charges $q_i$ to the uniform mesh to get charge density $\rho$
+2) Solve $\nabla^2 \phi(t) = -\frac{\rho}{\epsilon_0}$ for $\phi(t)$
+3) Solve $E(t) = -\nabla \phi(t)$ for $E$
+4) Interpolate $E$ to particle positions
+5) Advance $v(t-\Delta t/2) \to v(t+\Delta t/2)$ using $E(t)$
+6) Advance $x(t) \to x(t+\Delta t)$ using $v(t+\Delta t/2)$
+
+*** Time integration details
+
+**** Boris method for advacing $v$
+\begin{equation}
+v_{t-\Delta t/2} = v^{-} - \frac{qE}{m} \frac{\Delta t}{2}
+\end{equation}
+\begin{equation}
+v_{t+\Delta t/2} = v^+ + \frac{qE}{m}\frac{\Delta t}{2}
+\end{equation}
+\begin{equation}
+\frac{v^+-v^-}{\Delta t} = \frac{q}{2m}(v^+ + v^-)\times B
+\end{equation}
+
+**** Advancing $x$
+\[ x(t+\Delta t) = x(t) + v(t+\Delta t/2) \Delta t \]
+
+** Landau Oscillations
+Landau oscillations are simple harmoic waves that form in cold plasmas
+in reposnse to small pertubations in the initial charge density.
+
+The particle displacements are expected to be simple harmoic with
+period $\omega_p=(\frac{n q^2}{m \epsilon_0})^{1/2}$ ($\ddot{\delta x}
+= - \omega_p \delta x$). 
+
+
+*** Details
+- Position pertubation: $x = x_0 + A \cos(k x_0)$
+  - Should yield SHM in $\delta x$ with angular freq $\omega_p$
+  - Corresponds to a $\sin$ pertubation in the initial density at the
+    same mode
+  - Dispersion relation: $\omega(k) = \omega_p \cos(\frac{k \Delta x}{2})$
+- Measuring:
+  - Magnitude of k for a given mode as a function of time
+
+*** Dispersion relations
+
+* Model Validation
