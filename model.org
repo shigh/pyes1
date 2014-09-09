@@ -91,4 +91,4 @@ $\omega_p=(\frac{nq^2}{m \epsilon_0})^{1/2}$.
 ** Uniform distribution of particles
 - When electrons and ions are distributed uniformly in the domain with
   no initial velocity, you expect no motion or acceleration
-- See ---Need to make this notebook---
+- See [[file:1d2v-unif.ipynb][1d2v-unif IPython notebook]]
