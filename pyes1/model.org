@@ -1,0 +1,94 @@
+#+TITLE:  1d2v Electrostatic PIC Code
+#+AUTHOR: Scott High
+
+* Model Definition
+
+** General description
+- Approximating a 1 dimensional plasma using a finite number of
+  negatively charged electrons and positively charge ions
+- Particle dynamics are simulated by solving
+  \[ F = q(E+v \times B) \]
+  where
+  \[ E = -\nabla \phi \]
+  and
+  \[ \nabla^2 \phi = -\frac{\rho}{\epsilon_0} \]
+  - $\phi$ is approximated from the mesh charge density using second order
+    centered finite differences
+  - $E$ is approximated from $\phi$ using second order centered finite
+    differences
+- The time integrator is Leap-Frog
+  - $v$ is advanced using the Boris Method
+  - $x$ is advanced in the obvious way using $v$
+  - See below for details
+- Partical charges are interpolated to a uniform mesh to approximate
+  $\rho$ using the cloud in cell (CIC) or nearest grid point (NGP) methods
+- The magnetic field is uniform in the $z$ direction, and is held
+  constant at $B_0$.
+- Particles are allowed to move in the $x$-direction only, and are
+  approximated as infinite sheets with total charge $q$.
+- Particles have $x$ and $y$ velocity components $v_x$ and $v_y$
+
+** Algorithm
+
+1) Weight charges $q_i$ to the uniform mesh to get charge density $\rho$
+2) Solve $\nabla^2 \phi(t) = -\frac{\rho}{\epsilon_0}$ for $\phi(t)$
+3) Solve $E(t) = -\nabla \phi(t)$ for $E$
+4) Interpolate $E$ to particle positions
+5) Advance $v(t-\Delta t/2) \to v(t+\Delta t/2)$ using $E(t)$
+6) Advance $x(t) \to x(t+\Delta t)$ using $v(t+\Delta t/2)$
+
+*** Time integration details
+
+**** Boris method for advacing $v$
+\begin{equation}
+v_{t-\Delta t/2} = v^{-} - \frac{qE}{m} \frac{\Delta t}{2}
+\end{equation}
+\begin{equation}
+v_{t+\Delta t/2} = v^+ + \frac{qE}{m}\frac{\Delta t}{2}
+\end{equation}
+\begin{equation}
+\frac{v^+-v^-}{\Delta t} = \frac{q}{2m}(v^+ + v^-)\times B
+\end{equation}
+
+**** Advancing $x$
+\[ x(t+\Delta t) = x(t) + v(t+\Delta t/2) \Delta t \]
+
+** Landau Oscillations
+Landau oscillations are simple harmoic waves that form in cold plasmas
+in response to small pertubations in the initial charge density (with
+$B_0=0$).
+
+The particle displacements are expected to follow
+\[ \ddot{\delta x} = - \omega_p^2 \delta x \]
+which is SHM with period
+$\omega_p=(\frac{nq^2}{m \epsilon_0})^{1/2}$.
+
+
+*** Details
+- Position pertubation: $x = x_0 + A \cos(k x_0)$
+  - Corresponds to a $\sin$ pertubation in the initial density at the
+    same mode
+
+*** Dispersion relations for cold plasmas
+- Exact dispersion relation from the fluid equations
+  \[ \omega(\bold{k}) = \bold{k} \cdot \bold{v}_0 \pm \omega_p \]
+- When $\bold{v}_0 = 0$ the numerical dispersion is
+  \[ \omega(k) = \omega_p \cos\left(\frac{k \Delta x}{2}\right) \]
+
+* Model Validation
+
+** Landau Oscillations
+- Compared oscillations produced by the model with expected
+  theoretical results
+- Validated dispersion relations
+- See [[file:1d2v-wave.ipynb][1d2v-wave IPython notebook]]
+
+** Single particle motion
+- Set $B_0>0$ with a single electron and uniformly distributed ions
+- Compared resulting motion with expectations
+- See [[file:1d2v-sing.ipynb][1d2v-sing IPython notebook]]
+
+** Uniform distribution of particles
+- When electrons and ions are distributed uniformly in the domain with
+  no initial velocity, you expect no motion or acceleration
+- See [[file:1d2v-unif.ipynb][1d2v-unif IPython notebook]]
