@@ -33,27 +33,16 @@ def poisson_solve_fd(b, dx):
     return x
 __solver["FD"] = poisson_solve_fd
 
-# def poisson_solve_fft(rho, dx):
-#     nx   = len(rho)
-#     rhok = np.fft.fft(rho)
-#     k    = np.fft.fftfreq(nx)*2*np.pi/dx
-
-#     phik     = np.zeros_like(rhok)
-#     phik[1:] = rhok[1:]/(k[1:]**2)
-#     sol      = np.real(np.fft.ifft(phik))
-    
-#     return sol
-
 def poisson_solve_fft(rho, dx):
     nx   = len(rho)
     rhok = np.fft.fft(rho)
-    k    = np.arange(nx)
-    ck   = 2*(np.cos(2*np.pi*k/nx)-1.)/dx**2
+    k    = np.fft.fftfreq(nx)*2*np.pi/dx
+    kd   = (k[1:]**2)*(np.sin(k[1:]*dx/2.)/(k[1:]*dx/2))**2
     phik     = np.zeros_like(rhok)
-    phik[1:] = -rhok[1:]/ck[1:]
+    phik[1:] = rhok[1:]/kd
     sol      = np.real(np.fft.ifft(phik))
     
-    return sol    
+    return sol
 __solver["FFT"] = poisson_solve_fft
 
 def poisson_solve(b, dx, method="FFT"):

@@ -54,3 +54,7 @@ docs/_build/
 target/
 
 model.tex
+
+# IPython checkpoints
+.ipynb_checkpoints
+
