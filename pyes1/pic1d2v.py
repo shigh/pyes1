@@ -1,8 +1,7 @@
 
 import numpy as np
 from collections import namedtuple
-from interp import *
-from numba import jit
+import interp
 
 epi0 = 1. # Epsilon0
 Species = namedtuple("Species", ["q", "m", "N", "x0", "vx0", "vy0"])
@@ -55,23 +54,9 @@ def poisson_solve(b, dx, method="FFT"):
 # Dicts of weight/interp functions with string keys
 __weight = {}
 __interp = {}
-# @jit
-# def weight_cic(xp, q, nx, L):
-#     """ Weighting to grid (CIC)
-#     """
-#     rho = np.zeros(nx)
-#     # Scale from [0,L] to [0,nx]
-#     xps   = xp*nx/L
-#     left  = np.floor(xps).astype(np.int)
-#     right = np.mod(np.ceil(xps), nx).astype(np.int)
-#     for i in xrange(len(xps)):
-#         rho[left[i]]  += q[i]*(left[i]+1-xps[i])
-#         rho[right[i]] += q[i]*(xps[i]-left[i])
-        
-#     return rho
-__weight["CIC"] = weight_cic
 
-@jit
+__weight["CIC"] = interp.weight_cic
+
 def interp_cic(E, xp, nx, L):
     """ Interpolate E to particle positions (CIC)
     """
@@ -83,7 +68,6 @@ def interp_cic(E, xp, nx, L):
     return E_interp
 __interp["CIC"] = interp_cic
 
-@jit
 def weight_ngp(xp, q, nx, L):
     """ Weighting to grid (NGP)
     """
@@ -96,7 +80,6 @@ def weight_ngp(xp, q, nx, L):
     return rho
 __weight["NGP"] = weight_ngp
 
-@jit
 def interp_ngp(E, xp, nx, L):
     """ Interpolate E to particle positions (NGP)
     """
