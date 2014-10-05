@@ -1,6 +1,7 @@
 
 import numpy as np
 from collections import namedtuple
+from interp import *
 from numba import jit
 
 epi0 = 1. # Epsilon0
@@ -54,20 +55,20 @@ def poisson_solve(b, dx, method="FFT"):
 # Dicts of weight/interp functions with string keys
 __weight = {}
 __interp = {}
-@jit
-def weight_cic(xp, q, nx, L):
-    """ Weighting to grid (CIC)
-    """
-    rho = np.zeros(nx)
-    # Scale from [0,L] to [0,nx]
-    xps   = xp*nx/L
-    left  = np.floor(xps).astype(np.int)
-    right = np.mod(np.ceil(xps), nx).astype(np.int)
-    for i in xrange(len(xps)):
-        rho[left[i]]  += q[i]*(left[i]+1-xps[i])
-        rho[right[i]] += q[i]*(xps[i]-left[i])
+# @jit
+# def weight_cic(xp, q, nx, L):
+#     """ Weighting to grid (CIC)
+#     """
+#     rho = np.zeros(nx)
+#     # Scale from [0,L] to [0,nx]
+#     xps   = xp*nx/L
+#     left  = np.floor(xps).astype(np.int)
+#     right = np.mod(np.ceil(xps), nx).astype(np.int)
+#     for i in xrange(len(xps)):
+#         rho[left[i]]  += q[i]*(left[i]+1-xps[i])
+#         rho[right[i]] += q[i]*(xps[i]-left[i])
         
-    return rho
+#     return rho
 __weight["CIC"] = weight_cic
 
 @jit
@@ -106,6 +107,7 @@ __interp["NGP"] = interp_ngp
 
 def weight(xp, q, nx, L, method="CIC"):
     if method in __weight:
+        dx = L/nx
         return __weight[method](xp, q, nx, L)
     else:
         return method(xp, q, nx, L)
