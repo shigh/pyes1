@@ -59,6 +59,7 @@ __weight["S2"]  = interp.weight_S2
 __p["S2"]       = 2
 __weight["CIC"] = interp.weight_cic
 __p["CIC"]      = 1
+__interp["S2"]  = interp.interp_S2
 
 def interp_cic(E, xp, nx, L):
     """ Interpolate E to particle positions (CIC)

@@ -51,4 +51,26 @@ def weight_S2(double[:] xp,
         rho[xpsm] += qi*((1./2.-(xd))**2)/2.
         
     return rho
-    
+
+def interp_S2(double[:] E,
+              double[:] xp,
+              int nx, double L):
+    """ Weighting to grid (S2)
+    """
+    cdef int N = xp.shape[0]
+    cdef np.ndarray[DOUBLE,ndim=1] grid = np.zeros(N, dtype=np.float64)
+    cdef double dx = L/nx
+    cdef double xs
+    cdef int xps, xpsp, xpsm, i
+
+    for i in range(N):
+        xs = xp[i]/dx
+        xd = xs-round(xs)
+        xps = int(round(xs))%nx
+        xpsp = (xps+1)%nx
+        xpsm = (xps-1)%nx
+        grid[i] = E[xps]*(3./4.-(xd)**2)+ \
+                  E[xpsp]*((1./2.+(xd))**2)/2.+ \
+                  E[xpsm]*((1./2.-(xd))**2)/2.
+        
+    return grid
