@@ -33,11 +33,11 @@ def poisson_solve_fd(b, dx):
     return x
 __solver["FD"] = poisson_solve_fd
 
-def poisson_solve_fft(rho, dx):
+def poisson_solve_fft(rho, dx, p=1):
     nx   = len(rho)
     rhok = np.fft.fft(rho)
     k    = np.fft.fftfreq(nx)*2*np.pi/dx
-    kd   = (k[1:]**2)*(np.sin(k[1:]*dx/2.)/(k[1:]*dx/2))**2
+    kd   = (k[1:]**2)*(np.sin(k[1:]*dx/2.)/(k[1:]*dx/2))**(p+1)
     phik     = np.zeros_like(rhok)
     phik[1:] = rhok[1:]/kd
     sol      = np.real(np.fft.ifft(phik))
@@ -45,17 +45,20 @@ def poisson_solve_fft(rho, dx):
     return sol
 __solver["FFT"] = poisson_solve_fft
 
-def poisson_solve(b, dx, method="FFT"):
+def poisson_solve(b, dx, method="FFT", p=1):
     if method in __solver:
-        return __solver[method](b, dx)
+        return __solver[method](b, dx, p=p)
     else:
-        return method(b, dx)
+        return method(b, dx, p=p)
 
 # Dicts of weight/interp functions with string keys
 __weight = {}
+__p      = {}
 __interp = {}
 __weight["S2"]  = interp.weight_S2
+__p["S2"]       = 2
 __weight["CIC"] = interp.weight_cic
+__p["CIC"]      = 1
 
 def interp_cic(E, xp, nx, L):
     """ Interpolate E to particle positions (CIC)
@@ -180,7 +183,9 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FFT",
     # Main solution loop
     # Init half step back
     rho = weight(xp, q, nx, L, method=weight_method)/dx
-    phi = poisson_solve(rho/epi0, dx, method=solver_method)
+    phi = poisson_solve(rho/epi0, dx,
+                        method=solver_method,
+                        p=__p[weight_method])
     E0  = calc_E(phi, dx)
     E   = interp(E0, xp, nx, L, method=interp_method)
     
@@ -201,7 +206,9 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FFT",
         move(xp, vx, vy, dt, L, do_move=do_move)
       
         rho = weight(xp, q, nx, L, method=weight_method)/dx
-        phi = poisson_solve(rho/epi0, dx, method=solver_method)
+        phi = poisson_solve(rho/epi0, dx,
+                            method=solver_method,
+                            p=__p[weight_method])
         E0  = calc_E(phi, dx)
         E   = interp(E0, xp, nx, L, method=interp_method)
         
