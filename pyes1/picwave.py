@@ -44,7 +44,7 @@ class PicWave(object):
                                 np.zeros(self.N_i), 
                                 np.zeros(self.N_i))
 
-        self.species = [self.electron, self.ion]
+        self.species = [self.electron]#, self.ion]
         self.wp = np.sqrt(self.wp2)
         
     def run(self):
