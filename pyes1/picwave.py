@@ -4,7 +4,9 @@ from pic1d2v import *
 class PicWave(object):
     
     def __init__(self, N_e=2**8, nt=150, dt=0.2, nx=128,
-                 L=2*np.pi, mode=1, A=.01, wp2=1., B0=0):
+                 L=2*np.pi, mode=1, A=.01, wp2=1., B0=0,
+                 weight_method="CIC",
+                 interp_method="CIC"):
         self.N_e  = N_e 
         self.nt   = nt
         self.dt   = dt
@@ -14,6 +16,8 @@ class PicWave(object):
         self.A    = A
         self.wp2  = wp2
         self.B0   = B0
+        self.weight_method = weight_method
+        self.interp_method = interp_method
         
     def init_run(self):
         """Called in run to set all of the computer values
@@ -50,8 +54,8 @@ class PicWave(object):
             pic(self.species, self.nx, self.dx, 
                 self.nt, self.dt, self.L, self.B0, 
                 solver_method="FFT",
-                weight_method="CIC",
-                interp_method="CIC")
+                weight_method=self.weight_method,
+                interp_method=self.interp_method)
 
     def delta_x(self):
         """Handle wrap around logic for delta x

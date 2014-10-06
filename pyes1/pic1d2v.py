@@ -54,7 +54,7 @@ def poisson_solve(b, dx, method="FFT"):
 # Dicts of weight/interp functions with string keys
 __weight = {}
 __interp = {}
-
+__weight["S2"]  = interp.weight_S2
 __weight["CIC"] = interp.weight_cic
 
 def interp_cic(E, xp, nx, L):
