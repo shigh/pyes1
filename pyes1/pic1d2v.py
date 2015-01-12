@@ -184,8 +184,8 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FFT",
     E0  = calc_E(phi, dx)
     E   = interp(E0, xp, nx, L, method=interp_method)
     
-    rotate(vx, vy, -wc, dt)
-    accel(vx, vy, E, -qm, dt)
+    rotate(vx, vy, -wc, dt/2.)
+    accel(vx, vy, E, -qm, dt/2.)
 
     xpa[0], vxa[0], vya[0]  = xp, vx, vy
     Ea[0], phia[0], rhoa[0] = E0, phi, rho
