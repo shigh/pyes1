@@ -141,7 +141,7 @@ def normalize(x, L):
 def move(xp, vx, vy, dt, L, do_move=None):
     """ Move in place
     """
-    if do_move==None:
+    if do_move is None:
         xp[:] = xp + dt*vx
     else:
         xp[do_move] = xp[do_move] + dt*vx[do_move]
