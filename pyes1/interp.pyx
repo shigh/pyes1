@@ -10,7 +10,7 @@ def weight_cic(double[:] x,
                double[:] q,               
                int nx, double L,
                double rho0=0.):
-    """ Weighting to grid (CIC)
+    """ Weighting to periodic grid (CIC)
     """
 
     cdef double dx = L/nx
@@ -27,3 +27,26 @@ def weight_cic(double[:] x,
         grid[right] += q[i]*(xis-left)
 
     return grid
+
+def weight_cic_sheath(double[:] x,
+                      double[:] q,               
+                      int nx, double L,
+                      double rho0=0.):
+    """ Weighting to non-periodic grid (CIC)
+    """
+
+    cdef double dx = L/(nx-1)
+    cdef int N  = x.shape[0]
+    cdef np.ndarray[DOUBLE,ndim=1] grid = np.zeros(nx, dtype=np.float64)    
+    cdef double xis
+    cdef int i, left, right
+    grid[:] = rho0
+    for i in range(N):
+        xis   = x[i]/dx
+        left  = int(floor(xis))
+        right = left+1
+        grid[left]  += q[i]*(left+1-xis)
+        grid[right] += q[i]*(xis-left)
+
+    return grid
+    
