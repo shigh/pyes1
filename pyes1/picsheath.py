@@ -1,7 +1,7 @@
 
 import numpy as np
 from collections import namedtuple
-import interp
+from interp import weight_cic_sheath as weight
 
 Species = namedtuple("Species", ["q", "m", "N", "x0", "vx0", "vy0"])
 
@@ -33,13 +33,7 @@ def poisson_solve(b, dx, sigma):
     
     return x
 
-# Dicts of weight/interp functions with string keys
-__weight = {}
-__interp = {}
-
-__weight["CIC"] = interp.weight_cic_sheath
-
-def interp_cic(E, xp, nx, L):
+def interp(E, xp, nx, L):
     """ Interpolate E to particle positions (CIC)
     """
     dx  = L/(nx-1.)
@@ -49,20 +43,6 @@ def interp_cic(E, xp, nx, L):
     E_interp = E[left]*(left+1-xps) + E[right]*(xps-left)
     
     return E_interp
-__interp["CIC"] = interp_cic
-
-def weight(xp, q, nx, L, method="CIC"):
-    if method in __weight:
-        dx = L/(nx-1.)
-        return __weight[method](xp, q, nx, L)
-    else:
-        return method(xp, q, nx, L)
-
-def interp(E, xp, nx, L, method="CIC"):
-    if method in __interp:
-        return __interp[method](E, xp, nx, L)
-    else:
-        return method(E, xp, nx, L)
 
 def calc_E(phi, dx, sigma, E0=0):
     """ Calc E at the particle positions
@@ -100,9 +80,7 @@ def move(xp, vx, vy, dt, L, do_move=None):
     else:
         xp[do_move] = xp[do_move] + dt*vx[do_move]
     
-def pic(electron, ion, nx, dx, nt, dt, L, B0, solver_method="FD", 
-                                              weight_method="CIC",
-                                              interp_method="CIC"):
+def pic(electron, ion, nx, dx, nt, dt, L, B0):
     
     N = 0
     for s in [electron, ion]: N += s.N
@@ -136,10 +114,10 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, solver_method="FD",
     # Main solution loop
     # Init half step back
     sigma = 0.
-    rho = weight(xp, q, nx, L, method=weight_method)/dx
+    rho = weight(xp, q, nx, L)/dx
     phi = poisson_solve(rho, dx, sigma)
     E0  = calc_E(phi, dx, sigma)
-    E   = interp(E0, xp, nx, L, method=interp_method)
+    E   = interp(E0, xp, nx, L)
     
     rotate(vx, vy, -wc, dt)
     accel(vx, vy, E, -qm, dt)
@@ -180,10 +158,10 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, solver_method="FD",
         el[hit] = np.logical_not(el[hit])
 
 
-        rho = weight(xp, q, nx, L, method=weight_method)/dx
+        rho = weight(xp, q, nx, L)/dx
         phi = poisson_solve(rho, dx, sigma)
         E0  = calc_E(phi, dx, sigma)
-        E   = interp(E0, xp, nx, L, method=interp_method)
+        E   = interp(E0, xp, nx, L)
         
         xpa[i], vxa[i], vya[i]  = xp, vx, vy
         Ea[i], phia[i], rhoa[i] = E0, phi, rho
