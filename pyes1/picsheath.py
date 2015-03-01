@@ -109,6 +109,7 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0):
     phia = np.zeros((nt+1, nx))
     rhoa = np.zeros((nt+1, nx))
     siga = np.zeros(nt+1)
+    Na   = np.zeros(nt+1)
     ela  = np.zeros((nt+1,N), dtype=np.bool)
 
     # Main solution loop
@@ -125,46 +126,63 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0):
     xpa[0], vxa[0], vya[0]  = xp, vx, vy
     Ea[0], phia[0], rhoa[0] = E0, phi, rho
     ela[0] = el
-
+    Na[0] = N
     sigma = 0.
 
     for i in range(1, nt+1):
         
         # Update velocity
-        accel(vx, vy, E, qm, dt)
-        rotate(vx, vy, wc, dt)
-        accel(vx, vy, E, qm, dt)
+        accel(vx[:N], vy[:N], E[:N], qm[:N], dt)
+        #rotate(vx[:N], vy[:N], wc, dt)
+        accel(vx[:N], vy[:N], E[:N], qm[:N], dt)
 
         # Update position
-        move(xp, vx, vy, dt, L, do_move=do_move)
+        move(xp[:N], vx[:N], vy[:N], dt, L)
 
         # Reflect particles
-        reflect = xp < 0.
-        xp[reflect] = -xp[reflect]
-        vx[reflect] = -vx[reflect]
-        vy[reflect] = -vy[reflect]
+        reflect = xp[:N] < 0.
+        xp[:N][reflect] = -xp[:N][reflect]
+        vx[:N][reflect] = -vx[:N][reflect]
+        vy[:N][reflect] = -vy[:N][reflect]
 
         # Update wall charge density
-        hit = xp >= L
-        sigma += np.sum(q[hit])
-        xp[hit] = dx
-        vx[hit] = 0.
-        vy[hit] = 0.
+        hit = xp[:N] >= L
+        n_hit = np.sum(hit)
+        sigma += np.sum(q[:N][hit])
+        # xp[hit] = np.random.rand(n_hit)*10*dx
+        # vx[hit] = 0.
+        # vy[hit] = 0.
         # Swap particle types
-        q[hit & el]     = ion.q
-        q[hit & (~el)]  = electron.q
-        qm[hit & el]    = ion.q/ion.m
-        qm[hit & (~el)] = electron.q/electron.m
-        el[hit] = np.logical_not(el[hit])
+        # q[hit & el]     = ion.q
+        # q[hit & (~el)]  = electron.q
+        # qm[hit & el]    = ion.q/ion.m
+        # qm[hit & (~el)] = electron.q/electron.m
+        # el[hit] = np.logical_not(el[hit])
+
+        # vx[hit & el]    = np.abs(np.random.choice(electron.vx0))
+        # vx[hit & (~el)] = np.abs(np.random.choice(ion.vx0))
+
+        # Remove particles that hit the wall
+        xp[:N-n_hit] = xp[:N][~hit].copy()
+        vx[:N-n_hit] = vx[:N][~hit].copy()
+        vy[:N-n_hit] = vy[:N][~hit].copy()
+        q[:N-n_hit]  = q[:N][~hit].copy()
+        qm[:N-n_hit] = qm[:N][~hit].copy()
+        el[:N-n_hit] = el[:N][~hit].copy()
+        N -= n_hit
+        
+
+        # Add particles from source term
 
 
-        rho = weight(xp, q, nx, L)/dx
+        # Calc fields
+        rho = weight(xp[:N], q[:N], nx, L)/dx
         phi = poisson_solve(rho, dx, sigma)
         E0  = calc_E(phi, dx, sigma)
-        E   = interp(E0, xp, nx, L)
+        E   = interp(E0, xp[:N], nx, L)
         
         xpa[i], vxa[i], vya[i]  = xp, vx, vy
         Ea[i], phia[i], rhoa[i] = E0, phi, rho
-        siga[i], ela[i]         = sigma, el
+        siga[i], ela[i], Na[i]  = sigma, el, N
     
-    return (xpa, vxa, vya, Ea, phia, rhoa, siga, ela)
+    return (xpa, vxa, vya, Ea, phia, rhoa, siga, ela, Na)
