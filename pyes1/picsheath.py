@@ -25,7 +25,9 @@ def poisson_solve(b, dx, sigma):
     """
     nx = len(b)
     A  = one_d_poisson(nx-1)
+    A[-1,-1] = -1
     p  = -b*(dx**2)
+    p[-1] = sigma*dx-p[-1]/2.
     x  = np.zeros_like(p)
     x[1:] = np.linalg.solve(A, p[1:])
     
@@ -35,7 +37,7 @@ def poisson_solve(b, dx, sigma):
 __weight = {}
 __interp = {}
 
-__weight["CIC"] = interp.weight_cic
+__weight["CIC"] = interp.weight_cic_sheath
 
 def interp_cic(E, xp, nx, L):
     """ Interpolate E to particle positions (CIC)
@@ -62,14 +64,14 @@ def interp(E, xp, nx, L, method="CIC"):
     else:
         return method(E, xp, nx, L)
 
-def calc_E(phi, dx, E0=0):
+def calc_E(phi, dx, sigma, E0=0):
     """ Calc E at the particle positions
     Centered difference (second order)
     """
     E       = np.zeros_like(phi)
     E[1:-1] = -(phi[2:]-phi[:-2])
     E[0]    = E0
-    # E[-1] = -(phi[0]-phi[-2])
+    E[-1]   = -sigma
     
     return E/(2*dx)
 
@@ -97,9 +99,7 @@ def move(xp, vx, vy, dt, L, do_move=None):
         xp[:] = xp + dt*vx
     else:
         xp[do_move] = xp[do_move] + dt*vx[do_move]
-
-    normalize(xp, L)
-
+    
 def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD", 
                                         weight_method="CIC",
                                         interp_method="CIC"):
@@ -128,12 +128,14 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
     Ea   = np.zeros((nt+1, nx))
     phia = np.zeros((nt+1, nx))
     rhoa = np.zeros((nt+1, nx))
+    siga = np.zeros(nt+1)
 
     # Main solution loop
     # Init half step back
+    sigma = 0.
     rho = weight(xp, q, nx, L, method=weight_method)/dx
     phi = poisson_solve(rho, dx, sigma)
-    E0  = calc_E(phi, dx)
+    E0  = calc_E(phi, dx, sigma)
     E   = interp(E0, xp, nx, L, method=interp_method)
     
     rotate(vx, vy, -wc, dt)
@@ -154,14 +156,28 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
         # Update position
         move(xp, vx, vy, dt, L, do_move=do_move)
 
+        # Reflect particles
+        reflect = xp < 0.
+        xp[reflect] = -xp[reflect]
+        vx[reflect] = -vx[reflect]
+        vy[reflect] = -vy[reflect]
+
         # Update wall charge density
+        hit = xp >= L
+        sigma += np.sum(q[hit])
+        xp[hit] = dx
+        vx[hit] = 0.
+        vy[hit] = 0.
+
+        # Inject particles
 
         rho = weight(xp, q, nx, L, method=weight_method)/dx
         phi = poisson_solve(rho, dx, sigma)
-        E0  = calc_E(phi, dx)
+        E0  = calc_E(phi, dx, sigma)
         E   = interp(E0, xp, nx, L, method=interp_method)
         
         xpa[i], vxa[i], vya[i]  = xp, vx, vy
         Ea[i], phia[i], rhoa[i] = E0, phi, rho
+        siga[i] = sigma
     
-    return (xpa, vxa, vya, Ea, phia, rhoa)
+    return (xpa, vxa, vya, Ea, phia, rhoa, siga)
