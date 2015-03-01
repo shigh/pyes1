@@ -172,8 +172,13 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, solver_method="FD",
         xp[hit] = dx
         vx[hit] = 0.
         vy[hit] = 0.
+        # Swap particle types
+        q[hit & el]     = ion.q
+        q[hit & (~el)]  = electron.q
+        qm[hit & el]    = ion.q/ion.m
+        qm[hit & (~el)] = electron.q/electron.m
+        el[hit] = np.logical_not(el[hit])
 
-        # Inject particles
 
         rho = weight(xp, q, nx, L, method=weight_method)/dx
         phi = poisson_solve(rho, dx, sigma)
