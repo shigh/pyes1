@@ -27,7 +27,7 @@ def poisson_solve(b, dx, sigma):
     A  = one_d_poisson(nx-1)
     A[-1,-1] = -1
     p  = -b*(dx**2)
-    p[-1] = sigma*dx-p[-1]/2.
+    p[-1] = -sigma*dx+p[-1]/2.
     x  = np.zeros_like(p)
     x[1:] = np.linalg.solve(A, p[1:])
     
@@ -100,24 +100,26 @@ def move(xp, vx, vy, dt, L, do_move=None):
     else:
         xp[do_move] = xp[do_move] + dt*vx[do_move]
     
-def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD", 
-                                        weight_method="CIC",
-                                        interp_method="CIC"):
+def pic(electron, ion, nx, dx, nt, dt, L, B0, solver_method="FD", 
+                                              weight_method="CIC",
+                                              interp_method="CIC"):
     
     N = 0
-    for s in species: N += s.N
+    for s in [electron, ion]: N += s.N
 
     q, qm, wc, xp, vx, vy = [np.zeros(N) for _ in range(6)]
+    el      = np.ndarray((N,), dtype=np.bool)
     do_move = np.ndarray((N,), dtype=np.bool)
     do_move[:] = False
     count = 0 # Trailing count
-    for s in species:
+    for s,t in [(electron,True), (ion,False)]:
         q[count:count+s.N]  = s.q
         qm[count:count+s.N] = s.q/s.m
         wc[count:count+s.N] = (s.q/s.m)*B0
         xp[count:count+s.N] = s.x0
         vx[count:count+s.N] = s.vx0
         vy[count:count+s.N] = s.vy0
+        el[count:count+s.N] = t
         do_move[count:count+s.N] = s.m>0
         count += s.N
 
@@ -129,6 +131,7 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
     phia = np.zeros((nt+1, nx))
     rhoa = np.zeros((nt+1, nx))
     siga = np.zeros(nt+1)
+    ela  = np.zeros((nt+1,N), dtype=np.bool)
 
     # Main solution loop
     # Init half step back
@@ -143,6 +146,7 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
 
     xpa[0], vxa[0], vya[0]  = xp, vx, vy
     Ea[0], phia[0], rhoa[0] = E0, phi, rho
+    ela[0] = el
 
     sigma = 0.
 
@@ -178,6 +182,6 @@ def pic(species, nx, dx, nt, dt, L, B0, solver_method="FD",
         
         xpa[i], vxa[i], vya[i]  = xp, vx, vy
         Ea[i], phia[i], rhoa[i] = E0, phi, rho
-        siga[i] = sigma
+        siga[i], ela[i]         = sigma, el
     
-    return (xpa, vxa, vya, Ea, phia, rhoa, siga)
+    return (xpa, vxa, vya, Ea, phia, rhoa, siga, ela)
