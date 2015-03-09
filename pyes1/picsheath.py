@@ -80,7 +80,7 @@ def move(xp, vx, vy, dt, L, do_move=None):
     else:
         xp[do_move] = xp[do_move] + dt*vx[do_move]
     
-def pic(electron, ion, nx, dx, nt, dt, L, B0):
+def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res):
     
     N = 0
     for s in [electron, ion]: N += s.N
@@ -103,15 +103,27 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0):
         count += s.N
 
     # store the results at each time step
-    xpa  = np.zeros((nt+1, N_max))
-    vxa  = np.zeros((nt+1, N_max))
-    vya  = np.zeros((nt+1, N_max))
-    Ea   = np.zeros((nt+1, nx))
-    phia = np.zeros((nt+1, nx))
-    rhoa = np.zeros((nt+1, nx))
-    siga = np.zeros(nt+1)
-    Na   = np.zeros(nt+1)
-    ela  = np.zeros((nt+1,N_max), dtype=np.bool)
+    save_xp  = 'xp'  in save_res
+    save_vx  = 'vx'  in save_res
+    save_vy  = 'vy'  in save_res
+    save_E   = 'E'   in save_res
+    save_phi = 'phi' in save_res
+    save_rho = 'rho' in save_res
+    save_sig = 'sig' in save_res
+    save_N   = 'N'   in save_res
+    save_el  = 'el'  in save_res
+    if save_xp or save_vx or save_vy:
+        save_N = save_el = True
+
+    if save_xp:  xpa  = np.zeros((nt+1, N_max))
+    if save_vx:  vxa  = np.zeros((nt+1, N_max))
+    if save_vy:  vya  = np.zeros((nt+1, N_max))
+    if save_E:   Ea   = np.zeros((nt+1, nx))
+    if save_phi: phia = np.zeros((nt+1, nx))
+    if save_rho: rhoa = np.zeros((nt+1, nx))
+    if save_sig: siga = np.zeros(nt+1)
+    if save_N:   Na   = np.zeros(nt+1)
+    if save_el:  ela  = np.zeros((nt+1,N_max), dtype=np.bool)
 
     # Main solution loop
     # Init half step back
@@ -121,14 +133,18 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0):
     E0  = calc_E(phi, dx, sigma)
     E   = interp(E0, xp[:N], nx, L)
     
-    rotate(vx[:N], vy[:N], -wc[:N], dt)
+    #rotate(vx[:N], vy[:N], -wc[:N], dt)
     accel(vx[:N], vy[:N], E, -qm[:N], dt)
 
-    xpa[0], vxa[0], vya[0]  = xp, vx, vy
-    Ea[0], phia[0], rhoa[0] = E0, phi, rho
-    ela[0] = el
-    Na[0] = N
-    sigma = 0.
+    if save_xp:  xpa[0]  = xp
+    if save_vx:  vxa[0]  = vx
+    if save_vy:  vya[0]  = vy
+    if save_E:   Ea[0]   = E0
+    if save_phi: phia[0] = phi
+    if save_rho: rhoa[0] = rho
+    if save_sig: siga[0] = sigma
+    if save_N:   Na[0]   = N
+    if save_el:  ela[0]  = el
 
     for i in range(1, nt+1):
         
@@ -193,9 +209,26 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0):
         phi = poisson_solve(rho, dx, sigma)
         E0  = calc_E(phi, dx, sigma)
         E   = interp(E0, xp[:N], nx, L)
-        
-        xpa[i], vxa[i], vya[i]  = xp, vx, vy
-        Ea[i], phia[i], rhoa[i] = E0, phi, rho
-        siga[i], ela[i], Na[i]  = sigma, el, N
-    
-    return (xpa, vxa, vya, Ea, phia, rhoa, siga, ela, Na)
+
+        if save_xp:  xpa[i]  = xp
+        if save_vx:  vxa[i]  = vx
+        if save_vy:  vya[i]  = vy
+        if save_E:   Ea[i]   = E0
+        if save_phi: phia[i] = phi
+        if save_rho: rhoa[i] = rho
+        if save_sig: siga[i] = sigma
+        if save_N:   Na[i]   = N
+        if save_el:  ela[i]  = el
+
+    results = {}
+    if save_xp:  results['xp']  = xpa
+    if save_vx:  results['vx']  = vxa
+    if save_vy:  results['vy']  = vya
+    if save_E:   results['E']   = Ea
+    if save_phi: results['phi'] = phia
+    if save_rho: results['rho'] = rhoa
+    if save_sig: results['sig'] = siga
+    if save_N:   results['N']   = Na
+    if save_el:  results['el']  = ela
+
+    return results
