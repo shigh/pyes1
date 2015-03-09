@@ -4,7 +4,8 @@ from collections import namedtuple
 from interp import weight_cic_sheath as weight
 
 Species = namedtuple("Species", ["q", "m", "N", "x0",
-                                 "vx0", "vy0", "sample"])
+                                 "vx0", "vy0", "sample",
+                                 "source"])
 
 __cache_one_d_poisson = {}
 def one_d_poisson(n):
@@ -185,8 +186,8 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res):
         # Add particles from source term
 
         n_pairs = 2
-        vxe = electron.sample(n_pairs)
-        vxi = ion.sample(n_pairs)
+        vxe = electron.source(n_pairs)
+        vxi = ion.source(n_pairs)
         xe_new = np.random.rand(n_pairs)*20.0*dx
         xi_new = np.random.rand(n_pairs)*20.0*dx
 
