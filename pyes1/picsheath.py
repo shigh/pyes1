@@ -82,7 +82,8 @@ def move(xp, vx, vy, dt, L, do_move=None):
     else:
         xp[do_move] = xp[do_move] + dt*vx[do_move]
     
-def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res):
+def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res,
+        n_pairs=2, L_source=1.0):
     
     N = 0
     for s in [electron, ion]: N += s.N
@@ -163,11 +164,10 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res):
         n_reflect  = np.sum(reflect)
         ne_reflect = np.sum(el[:N][reflect])
         ni_reflect = n_reflect-ne_reflect
-        xp[:N][reflect] = 0.0#-xp[:N][reflect]
+        xp[:N][reflect] = 0.0
         vx[:N][  el[:N] &reflect] = np.abs(electron.sample(ne_reflect))
         vx[:N][(~el[:N])&reflect] = np.abs(ion.sample(ni_reflect))
-
-        vy[:N][reflect] = 0.0#-vy[:N][reflect]
+        vy[:N][reflect] = 0.0
 
         # Update wall charge density
         hit = xp[:N] >= L
@@ -184,12 +184,10 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res):
         N -= n_hit
 
         # Add particles from source term
-
-        n_pairs = 2
         vxe = electron.source(n_pairs)
         vxi = ion.source(n_pairs)
-        xe_new = np.random.rand(n_pairs)*20.0*dx
-        xi_new = np.random.rand(n_pairs)*20.0*dx
+        xe_new = np.random.rand(n_pairs)*L_source
+        xi_new = np.random.rand(n_pairs)*L_source
 
         xp[N:N+n_pairs] = xe_new
         vx[N:N+n_pairs] = vxe
