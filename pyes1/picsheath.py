@@ -3,7 +3,8 @@ import numpy as np
 from collections import namedtuple
 from interp import weight_cic_sheath as weight
 
-Species = namedtuple("Species", ["q", "m", "N", "x0", "vx0", "vy0"])
+Species = namedtuple("Species", ["q", "m", "N", "x0",
+                                 "vx0", "vy0", "sample"])
 
 __cache_one_d_poisson = {}
 def one_d_poisson(n):
@@ -162,8 +163,9 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res):
         ne_reflect = np.sum(el[:N][reflect])
         ni_reflect = n_reflect-ne_reflect
         xp[:N][reflect] = 0.0#-xp[:N][reflect]
-        vx[:N][  el[:N] &reflect] = np.abs(np.random.choice(electron.vx0, size=ne_reflect))#-vx[:N][reflect]
-        vx[:N][(~el[:N])&reflect] = np.abs(np.random.choice(ion.vx0,      size=ni_reflect))#-vx[:N][reflect]
+        vx[:N][  el[:N] &reflect] = np.abs(electron.sample(ne_reflect))
+        vx[:N][(~el[:N])&reflect] = np.abs(ion.sample(ni_reflect))
+
         vy[:N][reflect] = 0.0#-vy[:N][reflect]
 
         # Update wall charge density
@@ -183,8 +185,8 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res):
         # Add particles from source term
 
         n_pairs = 2
-        vxe = np.random.choice(electron.vx0, size=n_pairs)
-        vxi = np.random.choice(ion.vx0, size=n_pairs)
+        vxe = electron.sample(n_pairs)
+        vxi = ion.sample(n_pairs)
         xe_new = np.random.rand(n_pairs)*20.0*dx
         xi_new = np.random.rand(n_pairs)*20.0*dx
 
