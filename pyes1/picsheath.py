@@ -1,5 +1,8 @@
 
 import numpy as np
+import scipy as sp
+import scipy.sparse as sps
+import scipy.sparse.linalg
 from collections import namedtuple
 from interp import weight_cic_sheath as weight
 
@@ -16,12 +19,12 @@ def one_d_poisson(n):
     np.fill_diagonal(a, -2.)
     np.fill_diagonal(a[:-1,1:], 1.)
     np.fill_diagonal(a[1:,:-1], 1.)
+    a = sps.csr_matrix(a)
     __cache_one_d_poisson[n] = a
     
     return  a
 
 # Dict of solver functions with string keys
-__solver = {}    
 def poisson_solve(b, dx, sigma):
     """ Assume V0=0
     """
@@ -31,7 +34,7 @@ def poisson_solve(b, dx, sigma):
     p  = -b*(dx**2)
     p[-1] = -sigma*dx+p[-1]/2.
     x  = np.zeros_like(p)
-    x[1:] = np.linalg.solve(A, p[1:])
+    x[1:] = sps.linalg.spsolve(A, p[1:])
     
     return x
 
