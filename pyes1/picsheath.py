@@ -4,7 +4,8 @@ import scipy as sp
 import scipy.sparse as sps
 import scipy.sparse.linalg
 from collections import namedtuple
-from interp import weight_cic_sheath as weight
+from interp import weight_cic_sheath as weight,\
+                   interp_cic_sheath as interp
 
 Species = namedtuple("Species", ["q", "m", "N", "x0",
                                  "vx0", "vy0", "sample",
@@ -37,17 +38,6 @@ def poisson_solve(b, dx, sigma):
     x[1:] = sps.linalg.spsolve(A, p[1:])
     
     return x
-
-def interp(E, xp, nx, L):
-    """ Interpolate E to particle positions (CIC)
-    """
-    dx  = L/(nx-1.)
-    xps = xp/dx # Scale
-    left  = np.floor(xps).astype(np.int)
-    right = np.mod(np.ceil(xps), nx).astype(np.int)
-    E_interp = E[left]*(left+1-xps) + E[right]*(xps-left)
-    
-    return E_interp
 
 def calc_E(phi, dx, sigma, E0=0):
     """ Calc E at the particle positions

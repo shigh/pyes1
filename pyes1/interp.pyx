@@ -50,3 +50,20 @@ def weight_cic_sheath(double[:] x,
 
     return grid
     
+def interp_cic_sheath(double[:] E,
+                      double[:] xp,
+                      int nx, double L):
+    """ Interpolate E to particle positions (CIC)
+    """
+    cdef double dx  = L/(nx-1.)
+    cdef double xps
+    cdef double[:] E_interp = np.zeros_like(xp)
+    cdef int i, left
+    cdef int N = len(xp)
+
+    for i in range(N):
+        xps  = xp[i]/dx # Scale
+        left = int(floor(xps))
+        E_interp[i] = E[left]*(left+1-xps) + E[left+1]*(xps-left)
+    
+    return np.array(E_interp)
