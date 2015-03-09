@@ -84,7 +84,7 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0):
     
     N = 0
     for s in [electron, ion]: N += s.N
-    N_max = N*3
+    N_max = N*2
 
     q, qm, wc, xp, vx, vy = [np.zeros(N_max) for _ in range(6)]
     el      = np.ndarray((N_max,), dtype=np.bool)
@@ -142,9 +142,13 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0):
 
         # Reflect particles
         reflect = xp[:N] < 0.
-        xp[:N][reflect] = -xp[:N][reflect]
-        vx[:N][reflect] = -vx[:N][reflect]
-        vy[:N][reflect] = -vy[:N][reflect]
+        n_reflect  = np.sum(reflect)
+        ne_reflect = np.sum(el[:N][reflect])
+        ni_reflect = n_reflect-ne_reflect
+        xp[:N][reflect] = 0.0#-xp[:N][reflect]
+        vx[:N][  el[:N] &reflect] = np.abs(np.random.choice(electron.vx0, size=ne_reflect))#-vx[:N][reflect]
+        vx[:N][(~el[:N])&reflect] = np.abs(np.random.choice(ion.vx0,      size=ni_reflect))#-vx[:N][reflect]
+        vy[:N][reflect] = 0.0#-vy[:N][reflect]
 
         # Update wall charge density
         hit = xp[:N] >= L
@@ -162,7 +166,7 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0):
 
         # Add particles from source term
 
-        n_pairs = 20
+        n_pairs = 2
         vxe = np.random.choice(electron.vx0, size=n_pairs)
         vxi = np.random.choice(ion.vx0, size=n_pairs)
         xe_new = np.random.rand(n_pairs)*20.0*dx
