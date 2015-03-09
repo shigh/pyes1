@@ -75,7 +75,7 @@ def move(xp, vx, vy, dt, L, do_move=None):
     else:
         xp[do_move] = xp[do_move] + dt*vx[do_move]
     
-def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res,
+def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res=None,
         n_pairs=2, L_source=1.0):
     
     N = 0
@@ -215,14 +215,25 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res,
         if save_el:  ela[i]  = el
 
     results = {}
-    if save_xp:  results['xp']  = xpa
-    if save_vx:  results['vx']  = vxa
-    if save_vy:  results['vy']  = vya
-    if save_E:   results['E']   = Ea
-    if save_phi: results['phi'] = phia
-    if save_rho: results['rho'] = rhoa
-    if save_sig: results['sig'] = siga
-    if save_N:   results['N']   = Na
-    if save_el:  results['el']  = ela
+    if save_xp:  results['xp_all']  = xpa
+    if save_vx:  results['vx_all']  = vxa
+    if save_vy:  results['vy_all']  = vya
+    if save_E:   results['E_all']   = Ea
+    if save_phi: results['phi_all'] = phia
+    if save_rho: results['rho_all'] = rhoa
+    if save_sig: results['sig_all'] = siga
+    if save_N:   results['N_all']   = Na
+    if save_el:  results['el_all']  = ela
+
+    results['N']   = N    
+    results['xp']  = xp[:N]
+    results['vx']  = vx[:N]
+    results['vy']  = vy[:N]
+    results['el']  = el[:N]
+    results['E']   = E0
+    results['phi'] = phi
+    results['rho'] = rho
+    results['sig'] = sigma
+
 
     return results
