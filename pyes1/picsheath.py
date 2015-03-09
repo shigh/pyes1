@@ -84,10 +84,11 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0):
     
     N = 0
     for s in [electron, ion]: N += s.N
+    N_max = N*3
 
-    q, qm, wc, xp, vx, vy = [np.zeros(N) for _ in range(6)]
-    el      = np.ndarray((N,), dtype=np.bool)
-    do_move = np.ndarray((N,), dtype=np.bool)
+    q, qm, wc, xp, vx, vy = [np.zeros(N_max) for _ in range(6)]
+    el      = np.ndarray((N_max,), dtype=np.bool)
+    do_move = np.ndarray((N_max,), dtype=np.bool)
     do_move[:] = False
     count = 0 # Trailing count
     for s,t in [(electron,True), (ion,False)]:
@@ -102,26 +103,26 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0):
         count += s.N
 
     # store the results at each time step
-    xpa  = np.zeros((nt+1, N))
-    vxa  = np.zeros((nt+1, N))
-    vya  = np.zeros((nt+1, N))
+    xpa  = np.zeros((nt+1, N_max))
+    vxa  = np.zeros((nt+1, N_max))
+    vya  = np.zeros((nt+1, N_max))
     Ea   = np.zeros((nt+1, nx))
     phia = np.zeros((nt+1, nx))
     rhoa = np.zeros((nt+1, nx))
     siga = np.zeros(nt+1)
     Na   = np.zeros(nt+1)
-    ela  = np.zeros((nt+1,N), dtype=np.bool)
+    ela  = np.zeros((nt+1,N_max), dtype=np.bool)
 
     # Main solution loop
     # Init half step back
     sigma = 0.
-    rho = weight(xp, q, nx, L)/dx
+    rho = weight(xp[:N], q[:N], nx, L)/dx
     phi = poisson_solve(rho, dx, sigma)
     E0  = calc_E(phi, dx, sigma)
-    E   = interp(E0, xp, nx, L)
+    E   = interp(E0, xp[:N], nx, L)
     
-    rotate(vx, vy, -wc, dt)
-    accel(vx, vy, E, -qm, dt)
+    rotate(vx[:N], vy[:N], -wc[:N], dt)
+    accel(vx[:N], vy[:N], E, -qm[:N], dt)
 
     xpa[0], vxa[0], vya[0]  = xp, vx, vy
     Ea[0], phia[0], rhoa[0] = E0, phi, rho
@@ -149,18 +150,6 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0):
         hit = xp[:N] >= L
         n_hit = np.sum(hit)
         sigma += np.sum(q[:N][hit])
-        # xp[hit] = np.random.rand(n_hit)*10*dx
-        # vx[hit] = 0.
-        # vy[hit] = 0.
-        # Swap particle types
-        # q[hit & el]     = ion.q
-        # q[hit & (~el)]  = electron.q
-        # qm[hit & el]    = ion.q/ion.m
-        # qm[hit & (~el)] = electron.q/electron.m
-        # el[hit] = np.logical_not(el[hit])
-
-        # vx[hit & el]    = np.abs(np.random.choice(electron.vx0))
-        # vx[hit & (~el)] = np.abs(np.random.choice(ion.vx0))
 
         # Remove particles that hit the wall
         xp[:N-n_hit] = xp[:N][~hit].copy()
@@ -170,10 +159,30 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0):
         qm[:N-n_hit] = qm[:N][~hit].copy()
         el[:N-n_hit] = el[:N][~hit].copy()
         N -= n_hit
-        
 
         # Add particles from source term
 
+        n_pairs = 20
+        vxe = np.random.choice(electron.vx0, size=n_pairs)
+        vxi = np.random.choice(ion.vx0, size=n_pairs)
+        xe_new = np.random.rand(n_pairs)*20.0*dx
+        xi_new = np.random.rand(n_pairs)*20.0*dx
+
+        xp[N:N+n_pairs] = xe_new
+        vx[N:N+n_pairs] = vxe
+        vy[N:N+n_pairs] = 0.0
+        q[N:N+n_pairs]  = electron.q
+        qm[N:N+n_pairs] = electron.q/electron.m
+        el[N:N+n_pairs] = True
+        N += n_pairs
+        
+        xp[N:N+n_pairs] = xi_new
+        vx[N:N+n_pairs] = vxi
+        vy[N:N+n_pairs] = 0.0
+        q[N:N+n_pairs]  = ion.q
+        qm[N:N+n_pairs] = ion.q/ion.m
+        el[N:N+n_pairs] = False
+        N += n_pairs
 
         # Calc fields
         rho = weight(xp[:N], q[:N], nx, L)/dx
