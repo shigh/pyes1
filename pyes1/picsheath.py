@@ -76,11 +76,11 @@ def move(xp, vx, vy, dt, L, do_move=None):
         xp[do_move] = xp[do_move] + dt*vx[do_move]
     
 def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res=None,
-        n_pairs=2, L_source=1.0):
+        n_pairs=2, L_source=1.0, max_scale=2):
     
     N = 0
     for s in [electron, ion]: N += s.N
-    N_max = N*2
+    N_max = N*max_scale
 
     q, qm, wc, xp, vx, vy = [np.zeros(N_max) for _ in range(6)]
     el      = np.ndarray((N_max,), dtype=np.bool)
