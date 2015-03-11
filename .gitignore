@@ -53,7 +53,9 @@ docs/_build/
 # PyBuilder
 target/
 
+# Generated files
 model.tex
+*.pdf
 
 # IPython checkpoints
 .ipynb_checkpoints
