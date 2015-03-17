@@ -25,7 +25,6 @@ def one_d_poisson(n):
     
     return  a
 
-# Dict of solver functions with string keys
 def poisson_solve(b, dx, sigma):
     """ Assume V0=0
     """
@@ -75,7 +74,7 @@ def move(xp, vx, vy, dt, L, do_move=None):
     else:
         xp[do_move] = xp[do_move] + dt*vx[do_move]
     
-def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res=None,
+def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res=[],
         n_pairs=2, L_source=1.0, max_scale=2):
     
     N = 0
@@ -108,6 +107,7 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res=None,
     save_sig = 'sig' in save_res
     save_N   = 'N'   in save_res
     save_el  = 'el'  in save_res
+    save_pw  = 'phi_wall'  in save_res    
     if save_xp or save_vx or save_vy:
         save_N = save_el = True
 
@@ -116,6 +116,7 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res=None,
     if save_vy:  vya  = np.zeros((nt+1, N_max))
     if save_E:   Ea   = np.zeros((nt+1, nx))
     if save_phi: phia = np.zeros((nt+1, nx))
+    if save_pw:  pwa  = np.zeros(nt+1)
     if save_rho: rhoa = np.zeros((nt+1, nx))
     if save_sig: siga = np.zeros(nt+1)
     if save_N:   Na   = np.zeros(nt+1)
@@ -137,6 +138,7 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res=None,
     if save_vy:  vya[0]  = vy
     if save_E:   Ea[0]   = E0
     if save_phi: phia[0] = phi
+    if save_pw:  pwa[0]  = phi[-1]
     if save_rho: rhoa[0] = rho
     if save_sig: siga[0] = sigma
     if save_N:   Na[0]   = N
@@ -209,22 +211,25 @@ def pic(electron, ion, nx, dx, nt, dt, L, B0, save_res=None,
         if save_vy:  vya[i]  = vy
         if save_E:   Ea[i]   = E0
         if save_phi: phia[i] = phi
+        if save_pw:  pwa[i]  = phi[-1]
         if save_rho: rhoa[i] = rho
         if save_sig: siga[i] = sigma
         if save_N:   Na[i]   = N
         if save_el:  ela[i]  = el
 
     results = {}
-    if save_xp:  results['xp_all']  = xpa
-    if save_vx:  results['vx_all']  = vxa
-    if save_vy:  results['vy_all']  = vya
-    if save_E:   results['E_all']   = Ea
-    if save_phi: results['phi_all'] = phia
-    if save_rho: results['rho_all'] = rhoa
-    if save_sig: results['sig_all'] = siga
-    if save_N:   results['N_all']   = Na
-    if save_el:  results['el_all']  = ela
+    if save_xp:  results['xp_all']   = xpa
+    if save_vx:  results['vx_all']   = vxa
+    if save_vy:  results['vy_all']   = vya
+    if save_E:   results['E_all']    = Ea
+    if save_phi: results['phi_all']  = phia
+    if save_pw:  results['phi_wall'] = pwa
+    if save_rho: results['rho_all']  = rhoa
+    if save_sig: results['sig_all']  = siga
+    if save_N:   results['N_all']    = Na
+    if save_el:  results['el_all']   = ela
 
+    # Save the last value for each variable
     results['N']   = N    
     results['xp']  = xp[:N]
     results['vx']  = vx[:N]
