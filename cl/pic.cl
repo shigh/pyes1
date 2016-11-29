@@ -89,3 +89,19 @@ __kernel void move(__global double *xp, __global const double *vx,
   }
 
 }
+
+__kernel void accel(__global double *Ep, __global const double *q,
+                     __global double *vx, double dt, int N) {
+
+  int gid = get_global_id(0);
+  const int stride = get_global_size(0);
+
+  while(gid<N) {
+
+    // vx[gid] += dt*q[gid]*Ep[gid]/2.0;
+    vx[gid] += dt*Ep[gid];
+    gid += stride;
+
+  }
+
+}
